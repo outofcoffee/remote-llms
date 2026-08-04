@@ -23,7 +23,7 @@
 # several Outfits can run several instances side by side in one account.
 PROVIDER llamacpp
 ALIAS    qwen3.6-27b
-CONTEXT  131072
+CONTEXT  262144
 PRESET   ../shared/preset.ini
 REMOTE   dev-1
 
