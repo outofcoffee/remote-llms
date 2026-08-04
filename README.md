@@ -6,17 +6,9 @@ Two remote environments, each serving **Qwen3.6-27B** on llama.cpp, deployed ont
 the shared account-level infrastructure. They have their own Elastic IP, API key
 and config, so both can run side by side in one AWS account.
 
-## Layout
+## Why
 
-```
-dev-1/Outfit        # environment "dev-1"  (REMOTE dev-1)
-dev-2/Outfit        # environment "dev-2"  (REMOTE dev-2)
-shared/preset.ini   # llama.cpp preset both environments serve
-```
-
-The Outfit files are hand-maintained — nothing generates or rewrites them. They
-carry only the environment *name*; the deployment's URLs, address and key live
-per-user under `~/.config/outfit/remotes/<env>/` and are never committed here.
+This repo allows you to deploy Qwen 3.6 to a cloud VM and connect your local AI coding agent to it.
 
 ## Prerequisites
 
@@ -146,3 +138,17 @@ outfit remote stop    dev-1    # terminate now instead of waiting for the idle t
 The same Outfit + preset that deploys the remote endpoint also runs the model on
 your own machine — `outfit serve dev-1` starts a local llama-server from
 `shared/preset.ini`, and `outfit apply dev-1` points the agent at it.
+
+---
+
+## Layout
+
+```
+dev-1/Outfit        # environment "dev-1"  (REMOTE dev-1)
+dev-2/Outfit        # environment "dev-2"  (REMOTE dev-2)
+shared/preset.ini   # llama.cpp preset both environments serve
+```
+
+The Outfit files are hand-maintained — nothing generates or rewrites them. They
+carry only the environment *name*; the deployment's URLs, address and key live
+per-user under `~/.config/outfit/remotes/<env>/` and are never committed here.
