@@ -96,7 +96,7 @@ outfit remote start dev-2
 Idle instances self-terminate after the idle period, so you don't pay for storage
 while they sit unused — starting again brings them back at the same address.
 
-## 5. Open a harness against one
+## 5. Launch OpenCode (or Pi, etc.) connected to your remote LLM
 
 Point your coding agent at an environment and launch it in one command. This
 applies the Outfit — adding a provider keyed on the environment name, default
