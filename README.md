@@ -1,4 +1,4 @@
-# remote-llm
+# remote-llms
 
 Configuration for remote hosted LLMs, using [outfit](https://github.com/lucinate-ai/outfit).
 
@@ -23,7 +23,7 @@ per-user under `~/.config/outfit/remotes/<env>/` and are never committed here.
 - `outfit` on your `PATH` — `brew install lucinate-ai/tap/outfit`
 - AWS credentials that resolve for this account (the standard AWS chain — profile,
   SSO, or env). Region is pinned to `us-east-1` by each Outfit's `ENV`.
-- For bootstrap only: a Node runtime and `pnpm` (it drives the CDK project in
+- For bootstrap only: a Node runtime, including `npm` (it drives the CDK project in
   outfit's `remote/` tree).
 - A coding-agent harness installed — `opencode` (the default) or `pi`.
 
@@ -86,16 +86,12 @@ outfit remote deploy dev-2
 
 Starting boots the instance on the environment's own Elastic IP and only reports
 success once the model is actually answering. It tries each availability zone in
-turn for GPU capacity, and prints an `export OPENAI_API_KEY=…` line for the
-environment's key:
+turn for GPU capacity:
 
 ```sh
 outfit remote start dev-1
 outfit remote start dev-2
 ```
-
-Run the printed `export …` line (or drop the key into a `.env` beside the Outfit)
-so the harness can authenticate against the endpoint in the next step.
 
 Idle instances self-terminate after the idle period, so you don't pay for storage
 while they sit unused — starting again brings them back at the same address.
@@ -124,13 +120,25 @@ outfit apply dev-1                 # unapply with: outfit unapply dev-1
 Prefer Pi over opencode? Set it once — `outfit harness --set pi` — or pick per
 command with `-H pi`.
 
+## Get the API endpoint and API key
+
+If you want to connect your own AI coding harness or other tools to the running
+instances, just run `outfit remote env <env name>`, e.g.
+
+```sh
+outfit remote env dev-1
+```
+
+...which prints an `export OPENAI_API_KEY=…` line for the environment's
+key, and an `export OPENAI_BASE_URL=…` line for its API endpoint.
+
 ## Checking on and stopping an environment
 
 ```sh
-outfit remote ls              # every registered environment, base URL + region
-outfit remote status dev-1    # is it running?
-outfit remote stats  dev-1    # GPU, CPU/RAM, token and request counts
-outfit remote stop   dev-1    # terminate now instead of waiting for the idle timer
+outfit remote ls               # every registered environment, base URL + region
+outfit remote status  dev-1    # is it running?
+outfit remote metrics dev-1    # GPU, CPU/RAM, token and request counts
+outfit remote stop    dev-1    # terminate now instead of waiting for the idle timer
 ```
 
 ## Running a model locally instead
