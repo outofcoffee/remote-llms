@@ -22,9 +22,9 @@
 # REMOTE names the environment: its EIP, API key and config are its own, so
 # several Outfits can run several instances side by side in one account.
 PROVIDER llamacpp
-ALIAS    qwen3.6-27b
+ALIAS    qwen3.8-27b
 CONTEXT  262144
-PRESET   ../shared/preset.ini
+PRESET   ./preset.ini
 REMOTE   dev-2
 
 # most GPU capacity here

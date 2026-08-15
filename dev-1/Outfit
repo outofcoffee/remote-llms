@@ -24,7 +24,7 @@
 PROVIDER llamacpp
 ALIAS    qwen3.6-27b
 CONTEXT  262144
-PRESET   ../shared/preset.ini
+PRESET   ./preset.ini
 REMOTE   dev-1
 
 # most GPU capacity here
