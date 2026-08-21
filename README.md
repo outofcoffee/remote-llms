@@ -2,13 +2,13 @@
 
 Configuration for remote hosted LLMs, using [outfit](https://github.com/lucinate-ai/outfit).
 
-Two remote environments, each serving **Qwen3.6-27B** on llama.cpp, deployed onto
-the shared account-level infrastructure. They have their own Elastic IP, API key
-and config, so both can run side by side in one AWS account.
+Three remote environments, each serving **Qwen3.8-27B** on llama.cpp, deployed onto
+the shared account-level infrastructure. Each has its own Elastic IP, API key
+and config, so all can run side by side in one AWS account.
 
 ## Why
 
-This repo allows you to deploy Qwen 3.6 to a cloud VM and connect your local AI coding agent to it.
+This repo allows you to deploy Qwen to a cloud VM and connect your local AI coding agent to it.
 
 ## Prerequisites
 
@@ -35,16 +35,17 @@ The AMI bake is slow and runs in the background by default — pass `--wait` to
 block until it finishes, or just carry on and deploy once the AMIs are ready.
 Re-running is safe and needs no override; it skips work that's already done.
 
-You only do this **once for the account** — both `dev-1` and `dev-2` reuse it.
+You only do this **once for the account** — every environment reuses it.
 
 ## 2. Alias the outfits
 
-Both Outfits declare the same `ALIAS` (`qwen3.6-27b`), so register them under
+All three Outfits declare the same `ALIAS` (`qwen3.8-27b`), so register them under
 distinct names to tell them apart in later commands:
 
 ```sh
 outfit alias -n dev-1 dev-1/Outfit
 outfit alias -n dev-2 dev-2/Outfit
+outfit alias -n dev-3 dev-3/Outfit
 
 outfit alias -l                    # list what's registered
 ```
@@ -64,6 +65,7 @@ instance.
 ```sh
 outfit remote deploy dev-1
 outfit remote deploy dev-2
+outfit remote deploy dev-3
 ```
 
 - Ingress defaults to your current public IP as a `/32`; pass a CIDR flag to widen it.
@@ -83,6 +85,7 @@ turn for GPU capacity:
 ```sh
 outfit remote start dev-1
 outfit remote start dev-2
+outfit remote start dev-3
 ```
 
 Idle instances self-terminate after the idle period, so you don't pay for storage
@@ -92,7 +95,7 @@ while they sit unused — starting again brings them back at the same address.
 
 Point your coding agent at an environment and launch it in one command. This
 applies the Outfit — adding a provider keyed on the environment name, default
-model `dev-1/qwen3.6-27b` — then starts your agent:
+model `dev-1/qwen3.8-27b` — then starts your agent:
 
 ```sh
 outfit harness dev-1               # dress the agent for dev-1, then launch
@@ -137,7 +140,7 @@ outfit remote stop    dev-1    # terminate now instead of waiting for the idle t
 
 The same Outfit + preset that deploys the remote endpoint also runs the model on
 your own machine — `outfit serve dev-1` starts a local llama-server from
-`shared/preset.ini`, and `outfit apply dev-1` points the agent at it.
+`dev-1/preset.ini`, and `outfit apply dev-1` points the agent at it.
 
 ---
 
@@ -145,10 +148,28 @@ your own machine — `outfit serve dev-1` starts a local llama-server from
 
 ```
 dev-1/Outfit        # environment "dev-1"  (REMOTE dev-1)
+dev-1/preset.ini    # llama.cpp preset dev-1 serves
 dev-2/Outfit        # environment "dev-2"  (REMOTE dev-2)
-shared/preset.ini   # llama.cpp preset both environments serve
+dev-2/preset.ini    # llama.cpp preset dev-2 serves
+dev-3/Outfit        # environment "dev-3"  (REMOTE dev-3)
+dev-3/preset.ini    # llama.cpp preset dev-3 serves
 ```
 
-The Outfit files are hand-maintained — nothing generates or rewrites them. They
-carry only the environment *name*; the deployment's URLs, address and key live
-per-user under `~/.config/outfit/remotes/<env>/` and are never committed here.
+These files carry only the environment *name*; the deployment's URLs, address
+and key live per-user under `~/.config/outfit/remotes/<env>/` and are never
+committed here.
+
+## Outfit file fields
+
+| Field      | Meaning |
+|------------|---------|
+| `PROVIDER` | Inference engine — `llamacpp` here. Switch to `vllm` by dropping `PRESET` and setting `MODEL` to the FP8 repo (e.g. `Qwen/Qwen3.8-27B-FP8`) |
+| `ALIAS`    | Model name — used both by your coding agent and as llama-server's `--alias`, so the two can't drift apart |
+| `CONTEXT`  | Context length, passed as `--ctx-size` |
+| `PRESET`   | Path to the llama.cpp preset this environment serves |
+| `REMOTE`   | Environment name — its EIP, API key and config are its own, so several environments run side by side in one account |
+| `ENV`      | Environment variables for the deploy, e.g. `AWS_REGION` |
+
+`outfit remote deploy` uses `PROVIDER` to ask the cloud for the right engine,
+and `outfit serve` uses it to run the same config locally. Either way the
+deploy Lambda seeds the weights into S3 if they aren't there already.
