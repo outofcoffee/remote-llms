@@ -100,11 +100,12 @@ model `dev-1/qwen3.8-27b` — then starts your agent:
 ```sh
 outfit harness dev-1               # dress the agent for dev-1, then launch
 outfit harness dev-2               # …or dev-2
+outfit harness dev-3               # …or dev-3
 ```
 
-In the harness model picker the two show up distinctly as `llama.cpp (dev-1)` and
-`llama.cpp (dev-2)`, so you can switch between the running endpoints without them
-looking identical.
+In the harness model picker each shows up distinctly as `llama.cpp (dev-1)`,
+`llama.cpp (dev-2)`, `llama.cpp (dev-3)`, so you can switch between the running
+endpoints without them looking identical.
 
 To wire up the config without launching, apply on its own:
 
