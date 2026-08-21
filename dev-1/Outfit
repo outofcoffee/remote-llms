@@ -23,11 +23,7 @@
 # several Outfits can run several instances side by side in one account.
 PROVIDER llamacpp
 ALIAS    qwen3.8-27b
-CONTEXT  262144
-
-# each slot gets 256k
-PARALLEL 2
-
+CONTEXT  196608
 PRESET   ./preset.ini
 REMOTE   dev-1
 
