@@ -1,0 +1,11 @@
+# Remote Qwen endpoint on vLLM — see README.md for setup and field reference.
+PROVIDER vllm
+ALIAS    qwen3.8-27b
+# the same model the dev-* environments serve, in the FP8 distribution vLLM
+# consumes (it reads Hugging Face checkpoints, not GGUF)
+MODEL    Qwen/Qwen3.8-27B-FP8
+CONTEXT  196608
+PRESET   ./preset.ini
+REMOTE   vllm-1
+
+ENV AWS_REGION=us-east-1

@@ -2,9 +2,10 @@
 
 Configuration for remote hosted LLMs, using [outfit](https://github.com/lucinate-ai/outfit).
 
-Three remote environments, each serving **Qwen3.8-27B** on llama.cpp, deployed onto
-the shared account-level infrastructure. Each has its own Elastic IP, API key
-and config, so all can run side by side in one AWS account.
+Four remote environments serving **Qwen3.8-27B** — three on llama.cpp, one
+(`vllm-1`) on vLLM — deployed onto the shared account-level infrastructure. Each
+has its own Elastic IP, API key and config, so all can run side by side in one
+AWS account.
 
 ## Why
 
@@ -39,13 +40,14 @@ You only do this **once for the account** — every environment reuses it.
 
 ## 2. Alias the outfits
 
-All three Outfits declare the same `ALIAS` (`qwen3.8-27b`), so register them under
+All four Outfits declare the same `ALIAS` (`qwen3.8-27b`), so register them under
 distinct names to tell them apart in later commands:
 
 ```sh
 outfit alias -n dev-1 dev-1/Outfit
 outfit alias -n dev-2 dev-2/Outfit
 outfit alias -n dev-3 dev-3/Outfit
+outfit alias -n vllm-1 vllm-1/Outfit
 
 outfit alias -l                    # list what's registered
 ```
@@ -66,9 +68,15 @@ instance.
 outfit remote deploy dev-1
 outfit remote deploy dev-2
 outfit remote deploy dev-3
+outfit remote deploy vllm-1
 ```
 
 - Ingress defaults to your current public IP as a `/32`; pass a CIDR flag to widen it.
+- If the model's weights aren't in the account's weights bucket yet, the deploy
+  starts a seed job that streams them in from Hugging Face and names the seed
+  handle — follow it with `outfit remote seed status <seed-id>` (and `outfit
+  remote seed ls`), and wait for it to report `succeeded` before starting, so
+  the instance doesn't sync an incomplete prefix.
 - Redeploying an environment that's already live needs `--overwrite` (which
   `--yes` alone won't satisfy) so you can't silently clobber a running instance.
 
@@ -86,6 +94,7 @@ turn for GPU capacity:
 outfit remote start dev-1
 outfit remote start dev-2
 outfit remote start dev-3
+outfit remote start vllm-1
 ```
 
 Idle instances self-terminate after the idle period, so you don't pay for storage
@@ -141,7 +150,8 @@ outfit remote stop    dev-1    # terminate now instead of waiting for the idle t
 
 The same Outfit + preset that deploys the remote endpoint also runs the model on
 your own machine — `outfit serve dev-1` starts a local llama-server from
-`dev-1/preset.ini`, and `outfit apply dev-1` points the agent at it.
+`dev-1/preset.ini`, `outfit serve vllm-1` does the same with `vllm serve`, and
+`outfit apply <env>` points the agent at whichever you ran.
 
 ---
 
@@ -154,6 +164,8 @@ dev-2/Outfit        # environment "dev-2"  (REMOTE dev-2)
 dev-2/preset.ini    # llama.cpp preset dev-2 serves
 dev-3/Outfit        # environment "dev-3"  (REMOTE dev-3)
 dev-3/preset.ini    # llama.cpp preset dev-3 serves
+vllm-1/Outfit       # environment "vllm-1" (REMOTE vllm-1)
+vllm-1/preset.ini   # vLLM preset vllm-1 serves
 ```
 
 These files carry only the environment *name*; the deployment's URLs, address
@@ -164,13 +176,15 @@ committed here.
 
 | Field      | Meaning |
 |------------|---------|
-| `PROVIDER` | Inference engine — `llamacpp` here. Switch to `vllm` by dropping `PRESET` and setting `MODEL` to the FP8 repo (e.g. `Qwen/Qwen3.8-27B-FP8`) |
-| `ALIAS`    | Model name — used both by your coding agent and as llama-server's `--alias`, so the two can't drift apart |
-| `CONTEXT`  | Context length, passed as `--ctx-size` |
-| `PRESET`   | Path to the llama.cpp preset this environment serves |
+| `PROVIDER` | Inference engine — `llamacpp` for the dev-*, `vllm` for `vllm-1`. A vLLM environment sets `MODEL` to the model's FP8 distribution (e.g. `Qwen/Qwen3.8-27B-FP8` — vLLM reads Hugging Face checkpoints, not GGUF) and keeps a `PRESET` carrying the engine flags — MTP speculative config, tool parser, sampling defaults |
+| `ALIAS`    | Model name — used both by your coding agent and as the server's model name (llama-server's `--alias`, vLLM's `--served-model-name`), so the two can't drift apart |
+| `CONTEXT`  | Context length — `--ctx-size` for llama.cpp, `--max-model-len` for vLLM |
+| `PRESET`   | Path to the preset this environment serves, in its `PROVIDER`'s dialect |
 | `REMOTE`   | Environment name — its EIP, API key and config are its own, so several environments run side by side in one account |
 | `ENV`      | Environment variables for the deploy, e.g. `AWS_REGION` |
 
 `outfit remote deploy` uses `PROVIDER` to ask the cloud for the right engine,
-and `outfit serve` uses it to run the same config locally. Either way the
-deploy Lambda seeds the weights into S3 if they aren't there already.
+and `outfit serve` uses it to run the same config locally. Either way, if the
+weights aren't in the account's bucket yet, a seed job streams them in from
+Hugging Face and the deploy names it — `outfit remote seed status <seed-id>`
+follows it to completion.
