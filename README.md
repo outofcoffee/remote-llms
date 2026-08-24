@@ -153,6 +153,45 @@ your own machine — `outfit serve dev-1` starts a local llama-server from
 `dev-1/preset.ini`, `outfit serve vllm-1` does the same with `vllm serve`, and
 `outfit apply <env>` points the agent at whichever you ran.
 
+## vLLM vs llama.cpp (same model, same GPU)
+
+`vllm-1` runs the same Qwen3.8-27B + MTP setup as the dev-* environments, on
+vLLM 0.26 instead of llama.cpp — same L40S, same 196608 context, FP8 weights
+(`Qwen/Qwen3.8-27B-FP8`). Measured 08-24 with a fixed 512-token generation,
+two runs each; both engines were serving real traffic at the time, so the
+dev-1 TTFTs likely include queueing behind it:
+
+|                | dev-1 (llama.cpp) | vllm-1 (vLLM)          |
+|----------------|-------------------|------------------------|
+| decode         | 30–34 tok/s       | 14–17 tok/s            |
+| TTFT           | ~3.7–4.0 s        | ~0.2 s                 |
+| MTP acceptance | ~0.5, ~3.0/step   | 0.75, 4 drafts/step    |
+| KV cache       | bf16              | fp8: 8.68 GiB, 236,790 tokens, 1.20x concurrency at 196608 |
+
+Knobs that were needed to get `vllm-1` to boot and serve (all in `vllm-1/preset.ini`):
+
+- `attention-backend = TRITON_ATTN`, plus `"attention_backend": "TRITON_ATTN"`
+  inside the speculative-config. The AMI is slim (no CUDA toolkit), and the
+  default FlashInfer attention kernels JIT-compile on the first prefill, which
+  needs nvcc and killed the engine on its first real request. Triton's kernels
+  compile at engine init instead. A speculative drafter never inherits the
+  target's backend, so both places need it.
+- `kv-cache-dtype = fp8`. The bf16 KV cache at 196608 is 13.55 GiB; vLLM
+  profiles 8.68 GiB of headroom. fp8 KV here uses uncalibrated scales — a
+  memory lever, not a validated quality trade.
+- `max-num-seqs = 128`. Qwen3.8's GDN linear-attention layers keep a state
+  block per sequence, and the 0.92 memory budget profiles 158 of them; the
+  default 256 concurrent sequences can't be captured into CUDA graphs.
+
+Tool calling works end to end: `enable-auto-tool-choice` +
+`tool-call-parser qwen3_coder` return structured `tool_calls`, and a nested
+opencode session served by `vllm-1` drove its own file tools through the model
+without issue.
+
+llama.cpp wins raw decode speed here (~2x); vLLM wins time-to-first-token and
+batches requests. Part of vllm-1's decode cost is likely the Triton attention
+backend the AMI forces — the FlashInfer path is untested on this image.
+
 ---
 
 ## Layout
