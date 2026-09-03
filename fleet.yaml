@@ -1,0 +1,29 @@
+# The four Qwen3.8-27B cloud environments, observed as one fleet.
+#
+#   outfit fleet dashboard     # the live tiled view (picks this file up)
+#   outfit fleet status        # one row per environment
+#   outfit fleet metrics -w    # the pipeable live redraw
+#
+# Each node's `name` is the registered environment it drives — one per
+# `outfit remote deploy` — and what you type at `fleet start <node>`.
+# `kind: remote` marks it as a cloud environment rather than a host. No
+# bearer tokens or URLs here: the control plane signs each call, and each
+# environment's control URLs live in its remote.json, not in this file.
+
+apiKeyEnv: OPENAI_API_KEY
+
+nodes:
+  - name: dev-1
+    kind: remote
+
+  - name: dev-2
+    kind: remote
+
+  - name: dev-3
+    kind: remote
+    
+  - name: dev-4
+    kind: remote
+
+  - name: vllm-1
+    kind: remote
