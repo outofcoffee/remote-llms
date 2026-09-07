@@ -1,9 +1,8 @@
-# Remote Qwen endpoint — see README.md for setup and field reference.
 PROVIDER llamacpp
 ALIAS    qwen3.8-27b
 CONTEXT  196608
 PRESET   ./preset.ini
-REMOTE   dev-4
+REMOTE   dev-1
 
 # most GPU capacity here
 ENV AWS_REGION=us-east-1
