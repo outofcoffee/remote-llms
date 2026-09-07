@@ -27,3 +27,6 @@ nodes:
 
   - name: vllm-1
     kind: remote
+
+  - name: local-1
+    host: localhost

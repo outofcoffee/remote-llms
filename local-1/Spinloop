@@ -1,0 +1,4 @@
+PROVIDER llamacpp
+ALIAS    qwen3.8-27b
+CONTEXT  64k
+PRESET   ./preset.ini
