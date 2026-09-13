@@ -1,4 +1,8 @@
+# Muse-Glimmer-30B served by llama.cpp, targeting Meta's 17GB K-Quant build
+# (16.76 GB on disk). Text-only, with DFlash speculative decoding on. The
+# larger Q4_K_XL build does not fit a 32 GB M4 at this context — see the
+# memory budget in preset.ini.
 PROVIDER llamacpp
-ALIAS    qwen3.8-27b
-CONTEXT  64k
+ALIAS    muse-glimmer-30b
+CONTEXT  65535
 PRESET   ./preset.ini

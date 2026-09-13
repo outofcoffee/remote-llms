@@ -2,7 +2,6 @@ PROVIDER llamacpp
 ALIAS    qwen3.8-27b
 CONTEXT  196608
 PRESET   ./preset.ini
-REMOTE   dev-2
 
 # most GPU capacity here
 ENV AWS_REGION=us-east-1

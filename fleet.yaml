@@ -10,6 +10,12 @@
 # bearer tokens or URLs here: the control plane signs each call, and each
 # environment's control URLs live in its remote.json, not in this file.
 
+prefer: idle
+
+gateway:
+  url: http://localhost:4000
+  tokenEnv: OPENAI_API_KEY
+
 apiKeyEnv: OPENAI_API_KEY
 
 nodes:
