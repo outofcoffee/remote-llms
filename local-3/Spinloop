@@ -1,0 +1,16 @@
+# Qwen3.8-27B (8-bit) served locally by oMLX on Apple Silicon.
+#
+# oMLX serves every model under its model dir and dispatches on the requested
+# name, so MODEL is not a launch flag — it must be a name oMLX actually has
+# (the directory name under the preset's model-dir, or an alias from the admin
+# panel); a name it lacks is rejected with "model not found". List what yours
+# exposes:
+#   curl -H "Authorization: Bearer $OPENAI_API_KEY" http://127.0.0.1:8010/v1/models
+#
+# This install requires a key even on localhost; the .env beside this file
+# supplies OPENAI_API_KEY (spinloop records an env reference, never the key).
+PROVIDER omlx
+MODEL    Qwen3.8-27B-MLX-8bit
+CONTEXT  32768
+PRESET   ./preset.ini
+BASEURL  http://127.0.0.1:8010/v1
