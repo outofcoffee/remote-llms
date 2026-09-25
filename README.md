@@ -1,6 +1,6 @@
 # remote-llms
 
-Configuration for remote hosted LLMs, using [outfit](https://github.com/lucinate-ai/outfit).
+Configuration for remote hosted LLMs, using [spinloop](https://github.com/spinloop-ai/spinloop).
 
 Four remote environments serving **Qwen3.8-27B** — three on llama.cpp, one
 (`vllm-1`) on vLLM — deployed onto the shared account-level infrastructure. Each
@@ -13,11 +13,11 @@ This repo allows you to deploy Qwen to a cloud VM and connect your local AI codi
 
 ## Prerequisites
 
-- `outfit` on your `PATH` — `brew install lucinate-ai/tap/outfit`
+- `spinloop` on your `PATH` — `brew install spinloop-ai/tap/spinloop`
 - AWS credentials that resolve for this account (the standard AWS chain — profile,
-  SSO, or env). Region is pinned to `us-east-1` by each Outfit's `ENV`.
+  SSO, or env). Region is pinned to `us-east-1` by each Spinloop's `ENV`.
 - For bootstrap only: a Node runtime, including `npm` (it drives the CDK project in
-  outfit's `remote/` tree).
+  spinloop's `remote/` tree).
 - A coding-agent harness installed — `opencode` (the default) or `pi`.
 
 ## 1. Bootstrap the shared layer (once per account)
@@ -26,63 +26,66 @@ The shared infrastructure — Image Builder AMIs, the lifecycle Lambdas, the S3
 weights bucket, roles and VPC — is deployed once and reused by every environment:
 
 ```sh
-outfit remote bootstrap            # shows a plan, then asks to confirm
-# outfit remote bootstrap --dry-run  # print the plan, change nothing
-# outfit remote bootstrap --yes      # confirm non-interactively
+spinloop remote bootstrap              # shows a plan, then asks to confirm
+# spinloop remote bootstrap --dry-run  # print the plan, change nothing
+# spinloop remote bootstrap --yes      # confirm non-interactively
 ```
 
-It prints the target account, region and cost caveat before touching anything.
-The AMI bake is slow and runs in the background by default — pass `--wait` to
-block until it finishes, or just carry on and deploy once the AMIs are ready.
-Re-running is safe and needs no override; it skips work that's already done.
+It prints the target account, region and cost caveat before touching anything,
+then deploys the control plane — it creates no instance, Elastic IP or
+environment. Re-running is safe and needs no override; it updates the stack and
+skips work that's already done.
+
+The runner AMIs are baked separately by `spinloop remote bake` (a slow ~20–40
+minute step); run it once and wait, or `--no-wait` to let it run while you go on.
 
 You only do this **once for the account** — every environment reuses it.
 
-## 2. Alias the outfits
+## 2. Alias the Spinloops
 
-All four Outfits declare the same `ALIAS` (`qwen3.8-27b`), so register them under
+All four Spinloops declare the same `ALIAS` (`qwen3.8-27b`), so register them under
 distinct names to tell them apart in later commands:
 
 ```sh
-outfit alias -n dev-1 dev-1/Outfit
-outfit alias -n dev-2 dev-2/Outfit
-outfit alias -n dev-3 dev-3/Outfit
-outfit alias -n vllm-1 vllm-1/Outfit
+spinloop alias -n dev-1 dev-1/Spinloop
+spinloop alias -n dev-2 dev-2/Spinloop
+spinloop alias -n dev-3 dev-3/Spinloop
+spinloop alias -n vllm-1 vllm-1/Spinloop
 
-outfit alias -l                    # list what's registered
+spinloop alias -l                    # list what's registered
 ```
 
-These names now stand in for the file paths in every command that takes one —
-the `remote` control commands (`deploy`, `start`, `stop`, `status`, `stats`) as
-well as `apply`, `harness` and `serve` — so the rest of this guide uses them
-instead of paths. The alias registry lives in outfit's own config, not in the repo.
+These names stand in for the file paths wherever a command takes a Spinloop —
+`remote deploy`, `serve`, and `harness apply`/`open` — and double as the
+environment names you pass to `--env` on `start`, `stop`, `status` and `metrics`.
+The alias registry lives in spinloop's own config, not in the repo.
 
 ## 3. Deploy each environment
 
 Deploy stands up the environment's Elastic IP, instance config, per-environment
-API key and ingress rule, sets what it serves (the Outfit + preset), and registers
-it under `~/.config/outfit/remotes/<env>/remote.json`. It does **not** start an
+API key and ingress rule, sets what it serves (the Spinloop + preset), and registers
+it under `~/.config/spinloop/remotes/<env>/remote.json`. It does **not** start an
 instance.
 
 ```sh
-outfit remote deploy dev-1
-outfit remote deploy dev-2
-outfit remote deploy dev-3
-outfit remote deploy vllm-1
+spinloop remote deploy dev-1 --env dev-1
+spinloop remote deploy dev-2 --env dev-2
+spinloop remote deploy dev-3 --env dev-3
+spinloop remote deploy vllm-1 --env vllm-1
 ```
 
 - Ingress defaults to your current public IP as a `/32`; pass a CIDR flag to widen it.
 - If the model's weights aren't in the account's weights bucket yet, the deploy
   starts a seed job that streams them in from Hugging Face and names the seed
-  handle — follow it with `outfit remote seed status <seed-id>` (and `outfit
+  handle — follow it with `spinloop remote seed status <seed-id>` (and `spinloop
   remote seed ls`), and wait for it to report `succeeded` before starting, so
   the instance doesn't sync an incomplete prefix.
-- Redeploying an environment that's already live needs `--overwrite` (which
-  `--yes` alone won't satisfy) so you can't silently clobber a running instance.
+- Redeploying an environment that's already live needs `--overwrite` so you can't
+  silently clobber a running instance.
 
-> The alias, a path (`dev-1/Outfit`), or a directory holding one all work here;
-> with no argument at all a command uses `./Outfit`, so `cd dev-1 && outfit
-> remote deploy` does the same thing.
+> The alias, a path (`dev-1/Spinloop`), or a directory holding one all work here;
+> with no Spinloop named, deploy uses `./Spinloop`, so `cd dev-1 && spinloop
+> remote deploy --env dev-1` does the same thing.
 
 ## 4. Start them
 
@@ -91,10 +94,10 @@ success once the model is actually answering. It tries each availability zone in
 turn for GPU capacity:
 
 ```sh
-outfit remote start dev-1
-outfit remote start dev-2
-outfit remote start dev-3
-outfit remote start vllm-1
+spinloop remote start --env dev-1
+spinloop remote start --env dev-2
+spinloop remote start --env dev-3
+spinloop remote start --env vllm-1
 ```
 
 Idle instances self-terminate after the idle period, so you don't pay for storage
@@ -103,13 +106,13 @@ while they sit unused — starting again brings them back at the same address.
 ## 5. Launch OpenCode (or Pi, etc.) connected to your remote LLM
 
 Point your coding agent at an environment and launch it in one command. This
-applies the Outfit — adding a provider keyed on the environment name, default
-model `dev-1/qwen3.8-27b` — then starts your agent:
+configures the harness from what the environment serves — a provider keyed on the
+environment name and the model it runs — then starts your agent:
 
 ```sh
-outfit harness dev-1               # dress the agent for dev-1, then launch
-outfit harness dev-2               # …or dev-2
-outfit harness dev-3               # …or dev-3
+spinloop code --env dev-1          # dress the agent for dev-1, then launch
+spinloop code --env dev-2          # …or dev-2
+spinloop code --env dev-3          # …or dev-3
 ```
 
 In the harness model picker each shows up distinctly as `llama.cpp (dev-1)`,
@@ -119,19 +122,19 @@ endpoints without them looking identical.
 To wire up the config without launching, apply on its own:
 
 ```sh
-outfit apply dev-1                 # unapply with: outfit unapply dev-1
+spinloop harness apply dev-1 --env dev-1   # unapply with: spinloop harness unapply dev-1
 ```
 
-Prefer Pi over opencode? Set it once — `outfit harness --set pi` — or pick per
-command with `-H pi`.
+Prefer Pi over opencode? Set it once — `spinloop harness config --set pi` — or
+pick per command with `-H pi`.
 
 ## Get the API endpoint and API key
 
 If you want to connect your own AI coding harness or other tools to the running
-instances, just run `outfit remote env <env name>`, e.g.
+instances, just run `spinloop remote env --env <env name>`, e.g.
 
 ```sh
-outfit remote env dev-1
+spinloop remote env --env dev-1
 ```
 
 ...which prints an `export OPENAI_API_KEY=…` line for the environment's
@@ -140,18 +143,18 @@ key, and an `export OPENAI_BASE_URL=…` line for its API endpoint.
 ## Checking on and stopping an environment
 
 ```sh
-outfit remote ls               # every registered environment, base URL + region
-outfit remote status  dev-1    # is it running?
-outfit remote metrics dev-1    # GPU, CPU/RAM, token and request counts
-outfit remote stop    dev-1    # terminate now instead of waiting for the idle timer
+spinloop remote ls                 # every registered environment, base URL + region
+spinloop status   --env dev-1      # is it running?
+spinloop metrics  --env dev-1      # GPU, CPU/RAM, token and request counts
+spinloop remote stop --env dev-1   # terminate now instead of waiting for the idle timer
 ```
 
 ## Running a model locally instead
 
-The same Outfit + preset that deploys the remote endpoint also runs the model on
-your own machine — `outfit serve dev-1` starts a local llama-server from
-`dev-1/preset.ini`, `outfit serve vllm-1` does the same with `vllm serve`, and
-`outfit apply <env>` points the agent at whichever you ran.
+The same Spinloop + preset that deploys the remote endpoint also runs the model on
+your own machine — `spinloop serve dev-1` starts a local llama-server from
+`dev-1/preset.ini`, `spinloop serve vllm-1` does the same with `vllm serve`, and
+`spinloop harness apply <env>` points the agent at whichever you ran.
 
 ## vLLM vs llama.cpp (same model, same GPU)
 
@@ -197,21 +200,21 @@ backend the AMI forces — the FlashInfer path is untested on this image.
 ## Layout
 
 ```
-dev-1/Outfit        # environment "dev-1"  (REMOTE dev-1)
+dev-1/Spinloop      # environment "dev-1"  (REMOTE dev-1)
 dev-1/preset.ini    # llama.cpp preset dev-1 serves
-dev-2/Outfit        # environment "dev-2"  (REMOTE dev-2)
+dev-2/Spinloop      # environment "dev-2"  (REMOTE dev-2)
 dev-2/preset.ini    # llama.cpp preset dev-2 serves
-dev-3/Outfit        # environment "dev-3"  (REMOTE dev-3)
+dev-3/Spinloop      # environment "dev-3"  (REMOTE dev-3)
 dev-3/preset.ini    # llama.cpp preset dev-3 serves
-vllm-1/Outfit       # environment "vllm-1" (REMOTE vllm-1)
+vllm-1/Spinloop     # environment "vllm-1" (REMOTE vllm-1)
 vllm-1/preset.ini   # vLLM preset vllm-1 serves
 ```
 
 These files carry only the environment *name*; the deployment's URLs, address
-and key live per-user under `~/.config/outfit/remotes/<env>/` and are never
+and key live per-user under `~/.config/spinloop/remotes/<env>/` and are never
 committed here.
 
-## Outfit file fields
+## Spinloop file fields
 
 | Field      | Meaning |
 |------------|---------|
@@ -222,8 +225,8 @@ committed here.
 | `REMOTE`   | Environment name — its EIP, API key and config are its own, so several environments run side by side in one account |
 | `ENV`      | Environment variables for the deploy, e.g. `AWS_REGION` |
 
-`outfit remote deploy` uses `PROVIDER` to ask the cloud for the right engine,
-and `outfit serve` uses it to run the same config locally. Either way, if the
+`spinloop remote deploy` uses `PROVIDER` to ask the cloud for the right engine,
+and `spinloop serve` uses it to run the same config locally. Either way, if the
 weights aren't in the account's bucket yet, a seed job streams them in from
-Hugging Face and the deploy names it — `outfit remote seed status <seed-id>`
+Hugging Face and the deploy names it — `spinloop remote seed status <seed-id>`
 follows it to completion.
