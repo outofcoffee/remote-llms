@@ -6,3 +6,4 @@ PROVIDER llamacpp
 ALIAS    muse-glimmer-30b
 CONTEXT  65535
 PRESET   ./preset.ini
+BASEURL  http://127.0.0.1:8082/v1

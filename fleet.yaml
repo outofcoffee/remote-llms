@@ -38,3 +38,6 @@ nodes:
 
   - name: local-1
     host: localhost
+  
+  - name: local-2
+    host: localhost

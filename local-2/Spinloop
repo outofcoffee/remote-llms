@@ -1,0 +1,6 @@
+PROVIDER llamacpp
+ALIAS    qwen3.8-27b
+CONTEXT  256K
+PARALLEL 4
+PRESET   ./preset.ini
+BASEURL  http://127.0.0.1:8081/v1
