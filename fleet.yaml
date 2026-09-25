@@ -21,6 +21,8 @@ apiKeyEnv: OPENAI_API_KEY
 nodes:
   - name: dev-1
     kind: remote
+    # 96GB VRAM, RTX PRO 6000 Blackwell, 64GB system RAM
+    instance-type: g7e.2xlarge
 
   - name: dev-2
     kind: remote
