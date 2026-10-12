@@ -1,6 +1,10 @@
 PROVIDER llamacpp
 ALIAS    qwen3.8-27b
-CONTEXT  64K
-PARALLEL 4
+# 128K is the most that leaves a margin on a 32 GiB machine (GPU limit about
+# 29 GiB): about 21 GB of weights plus about 4.5 GB of q8 KV cache. llama.cpp
+# multiplies CONTEXT by PARALLEL, so raising PARALLEL needs a smaller CONTEXT.
+# See README.md for the arithmetic.
+CONTEXT  128K
+PARALLEL 1
 PRESET   ./preset.ini
 BASEURL  http://127.0.0.1:8081/v1
