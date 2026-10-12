@@ -2,4 +2,5 @@
 PROVIDER mtplx
 MODEL    mtplx-qwen38-27b-optimized-speed
 CONTEXT  65536
+PRESET   ./preset.ini
 BASEURL  http://127.0.0.1:8020/v1
