@@ -44,3 +44,6 @@ nodes:
 
   - name: local-3
     host: localhost
+
+  - name: local-4
+    host: localhost

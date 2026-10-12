@@ -1,0 +1,5 @@
+# Qwen3.8-27B (Optimized-Speed) served locally by MTPLX on Apple Silicon.
+PROVIDER mtplx
+MODEL    mtplx-qwen38-27b-optimized-speed
+CONTEXT  65536
+BASEURL  http://127.0.0.1:8020/v1
