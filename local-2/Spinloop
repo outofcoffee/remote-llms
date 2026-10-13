@@ -4,7 +4,7 @@ ALIAS    qwen3.8-27b
 # 29 GiB): about 21 GB of weights plus about 4.5 GB of q8 KV cache. llama.cpp
 # multiplies CONTEXT by PARALLEL, so raising PARALLEL needs a smaller CONTEXT.
 # See README.md for the arithmetic.
-CONTEXT  128K
+CONTEXT  96K
 PARALLEL 1
 PRESET   ./preset.ini
 BASEURL  http://127.0.0.1:8081/v1
