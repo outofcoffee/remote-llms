@@ -2,8 +2,8 @@
 
 Qwen3.8-27B served locally by llama.cpp on port 8081.
 
-- Model: `unsloth/Qwen3.8-27B-GGUF:UD-Q5_K_XL` (20.9 GB)
-- Context: 128K tokens (`--ctx-size 128000`), one slot (`PARALLEL 1`)
+- Model: `unsloth/Qwen3.8-27B-GGUF:UD-Q4_K_M` (16.5 GB)
+- Context: 128K tokens (`CONTEXT 128K`), one slot (`PARALLEL 1`)
 - KV cache: q8 for both keys and values
 - Multi-token prediction (MTP) and the vision projector (mmproj) are off
 
@@ -20,15 +20,14 @@ cache costs about 35 KB per token (16 layers x 2 x 4 KV heads x 256 dims x
 
 | Part | Size |
 |---|---|
-| Q5_K_XL weights | 20.9 GB |
+| Q4_K_M weights | 16.5 GB |
 | KV cache, 128K tokens at q8 | about 4.5 GB |
 | Linear-layer state, per slot | about 0.15 GB |
 | llama.cpp compute buffers | about 1-2 GB |
-| Total | about 27-28 GB |
+| Total | about 22-23 GB |
 
-That leaves 3-4 GB for macOS and other apps. 160K would bring the total to
-about 29 GB, which is at the GPU limit, so 128K is the highest round figure
-that leaves a margin. If memory is tight with a long prompt loaded, try `96K`.
+That leaves 6-7 GB for macOS and other apps. 160K would add about 1.1 GB of KV
+cache and 256K about 4.5 GB, so there is room to go higher if needed.
 
 llama.cpp multiplies the context by the slot count: `CONTEXT 64K` with
 `PARALLEL 4` allocates 256000 tokens of KV cache (about 9 GB), which does not
