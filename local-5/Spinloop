@@ -1,0 +1,18 @@
+# Qwen3.8-27B with MTP speculative decoding, served locally by llama-server,
+# or on a cloud GPU via spinloop cloud — everything in this one file, no preset.
+# Engine options live here as PARAMs, each rendered into the llama-server
+# command the way the preset's flags would be.
+PROVIDER llamacpp
+ALIAS    qwen3.8-27b
+CONTEXT  65535          # keep in step with the PARAMs below; raise it on a bigger box
+BASEURL  http://127.0.0.1:8081/v1
+
+PARAM hf = unsloth/Qwen3.8-27B-GGUF:UD-Q4_K_XL   # the model: repo:QUANT, as a PARAM
+PARAM no-mmproj          # skip the vision projector that -hf downloads automatically
+
+# PARAM ngl = 99           # offload every layer to the GPU; lower for limited VRAM
+PARAM fa = on            # flash attention
+PARAM jinja              # required for Qwen3 tool calling
+
+PARAM spec-type = draft-mtp       # MTP: the draft is inside this GGUF, no separate file
+PARAM spec-draft-n-max = 2        # draft tokens proposed per step
