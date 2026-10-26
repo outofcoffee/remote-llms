@@ -2,7 +2,7 @@
 
 Qwen3.8-27B served locally by llama.cpp on port 8081.
 
-- Model: `unsloth/Qwen3.8-27B-GGUF:UD-Q4_K_M` (16.5 GB)
+- Model: `unsloth/Qwen3.8-27B-GGUF:UD-Q4_K_XL` (16.5 GB)
 - Context: 128K tokens (`CONTEXT 128K`), one slot (`PARALLEL 1`)
 - KV cache: q8 for both keys and values
 - Multi-token prediction (MTP) and the vision projector (mmproj) are off
@@ -20,7 +20,7 @@ cache costs about 35 KB per token (16 layers x 2 x 4 KV heads x 256 dims x
 
 | Part | Size |
 |---|---|
-| Q4_K_M weights | 16.5 GB |
+| Q4_K_XL weights | 16.5 GB |
 | KV cache, 128K tokens at q8 | about 4.5 GB |
 | Linear-layer state, per slot | about 0.15 GB |
 | llama.cpp compute buffers | about 1-2 GB |
