@@ -4,7 +4,8 @@
 # command the way the preset's flags would be.
 PROVIDER llamacpp
 ALIAS    qwen3.8-27b
-CONTEXT  65535          # keep in step with the PARAMs below; raise it on a bigger box
+CONTEXT  128K          # keep in step with the PARAMs below; raise it on a bigger box
+OUTPUT   64K     # override default 1/4 output
 BASEURL  http://127.0.0.1:8081/v1
 
 PARAM hf = unsloth/Qwen3.8-27B-GGUF:UD-Q4_K_XL   # the model: repo:QUANT, as a PARAM
