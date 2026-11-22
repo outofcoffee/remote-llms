@@ -1,14 +1,15 @@
 PROVIDER llamacpp
 ALIAS    inkling-2-mini
 CONTEXT  128K
-OUTPUT   64K     # override default 1/4 output
+OUTPUT   32K     # cap output tokens — this model can get stuck in long reasoning loops
 BASEURL  http://127.0.0.1:8081/v1
 
 PARAM hf = unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL
-PARAM mmproj = Inkling-2-Mini-GGUF/mmproj-F16.gguf
+
+PARAM no-mmproj          # text-only: skip the vision projector that -hf would download
 
 PARAM jinja
-PARAM n-gpu-layers = 99
+# PARAM n-gpu-layers = 99   # 99 OOMs at boot on a 32GB box — leave at auto
 PARAM parallel = 1
 
 PARAM temp = 1.0
@@ -16,8 +17,8 @@ PARAM top-p = 1.0
 PARAM top-k = 0
 PARAM min-p = 0.0
 
-# speculative decoding
-PARAM model-draft = Inkling-2-Mini-GGUF/dspark-Inkling-2-Mini-Q8_0.gguf
+# speculative decoding — the Q8_0 drafter is auto-found at the repo root,
+# no model-draft line needed
 PARAM spec-type = draft-dspark
 PARAM spec-draft-n-max = 3
 PARAM n-gpu-layers-draft = 99
