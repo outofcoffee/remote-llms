@@ -9,7 +9,7 @@ PARAM hf = unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL
 PARAM no-mmproj          # text-only: skip the vision projector that -hf would download
 
 PARAM jinja
-# PARAM n-gpu-layers = 99   # 99 OOMs at boot on a 32GB box — leave at auto
+PARAM n-gpu-layers = 99
 PARAM parallel = 1
 
 PARAM temp = 1.0
@@ -22,3 +22,8 @@ PARAM min-p = 0.0
 PARAM spec-type = draft-dspark
 PARAM spec-draft-n-max = 3
 PARAM n-gpu-layers-draft = 99
+
+# quantise the KV cache
+PARAM fa           = on
+PARAM cache-type-k = q8_0
+PARAM cache-type-v = q8_0
