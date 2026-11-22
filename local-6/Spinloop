@@ -17,11 +17,11 @@ PARAM top-p = 1.0
 PARAM top-k = 0
 PARAM min-p = 0.0
 
-# speculative decoding — the Q8_0 drafter is auto-found at the repo root,
-# no model-draft line needed
-PARAM spec-type = draft-dspark
-PARAM spec-draft-n-max = 3
-PARAM n-gpu-layers-draft = 99
+# # speculative decoding — the Q8_0 drafter is auto-found at the repo root,
+# # no model-draft line needed
+# PARAM spec-type = draft-dspark
+# PARAM spec-draft-n-max = 3
+# PARAM n-gpu-layers-draft = 99
 
 # quantise the KV cache
 PARAM fa           = on
