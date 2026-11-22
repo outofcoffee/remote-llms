@@ -17,3 +17,8 @@ PARAM jinja              # required for Qwen3 tool calling
 
 PARAM spec-type = draft-mtp       # MTP: the draft is inside this GGUF, no separate file
 PARAM spec-draft-n-max = 2        # draft tokens proposed per step
+
+# quantise the KV cache
+PARAM fa           = on
+PARAM cache-type-k = q8_0
+PARAM cache-type-v = q8_0
