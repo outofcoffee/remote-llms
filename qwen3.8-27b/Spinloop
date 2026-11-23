@@ -1,10 +1,36 @@
+# Qwen3.8-27B with MTP speculative decoding, served locally by llama-server,
+# or on a cloud GPU via spinloop cloud — everything in this one file, no preset.
+# Engine options live here as PARAMs, each rendered into the llama-server
+# command the way the preset's flags would be.
 PROVIDER llamacpp
 ALIAS    qwen3.8-27b
-# About 16.5 GB of weights plus about 4.5 GB of q8 KV cache at 128K, on a 32 GiB
-# machine (GPU limit about 29 GiB). llama.cpp multiplies CONTEXT by PARALLEL,
-# so raising PARALLEL needs a smaller CONTEXT.
-# See README.md for the arithmetic.
-CONTEXT  128K
-PARALLEL 1
-PRESET   ./preset.ini
+CONTEXT  128K          # keep in step with the PARAMs below; raise it on a bigger box
+OUTPUT   64K     # override default 1/4 output
 BASEURL  http://127.0.0.1:8081/v1
+
+PARAM hf = unsloth/Qwen3.8-27B-GGUF:UD-Q4_K_XL   # the model: repo:QUANT, as a PARAM
+PARAM no-mmproj          # skip the vision projector that -hf downloads automatically
+
+PARAM ngl = 99           # offload every layer to the GPU; lower for limited VRAM
+PARAM fa = on            # flash attention
+PARAM jinja              # required for Qwen3 tool calling
+
+# Qwen's recommended sampling parameters for *thinking* mode (the model's
+# default). llama.cpp's own defaults (temp 0.8, top-k 40, min-p 0.05,
+# repeat-penalty 1.1) differ from these, so they're set explicitly here rather
+# than left implicit. Non-thinking mode wants a different set — see the
+# model card.
+PARAM temp = 1.0
+PARAM top-p = 0.95
+PARAM top-k = 20
+PARAM min-p = 0.0
+PARAM repeat-penalty = 1.0
+PARAM presence-penalty = 0.0
+
+# MTP: the draft head is inside this GGUF, no separate draft file
+PARAM spec-type = draft-mtp
+PARAM spec-draft-n-max = 2        # draft tokens proposed per step
+
+# quantise the KV cache
+PARAM cache-type-k = q8_0
+PARAM cache-type-v = q8_0
