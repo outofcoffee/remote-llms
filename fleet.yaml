@@ -36,14 +36,14 @@ nodes:
   - name: vllm-1
     kind: remote
 
-  - name: local-1
+  - name: glimmer
     host: localhost
   
-  - name: local-2
+  - name: qwen3.8-27b
     host: localhost
 
-  - name: local-3
+  - name: qwen3.8-27b-omlx
     host: localhost
 
-  - name: local-4
+  - name: qwen3.8-27b-mtplx
     host: localhost

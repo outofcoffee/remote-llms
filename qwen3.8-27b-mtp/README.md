@@ -74,8 +74,8 @@ What the PARAMs do:
 - `ngl = 99` — offload all layers to the GPU. Lower it (or drop it) for
   CPU-only or limited VRAM.
 - `fa = on` — flash attention, which also keeps the quantised KV cache an
-  option (see the sibling example's [KV-cache section](../qwen3.8-27b/README.md#optional-quantise-the-kv-cache)
-  if 128k does not fit).
+  option (see the sibling example's [memory section](../qwen3.8-27b/README.md#memory) if 128k
+  does not fit).
 - `jinja` — use the model's built-in chat template, written bare because the
   flag takes no value. Required for Qwen3 tool calling to work correctly.
 - `spec-type = draft-mtp` — speculative decoding with the model's own
@@ -102,7 +102,7 @@ curl http://127.0.0.1:8080/v1/models
 Apply the [`Spinloop`](Spinloop) in this directory:
 
 ```sh
-spinloop harness apply examples/llamacpp/qwen3.8-27b-mtp/Spinloop
+spinloop harness apply qwen3.8-27b-mtp/Spinloop
 # or, from this directory:
 spinloop harness apply
 ```
@@ -149,6 +149,4 @@ deployed environments.
 ## See also
 
 - The same model without MTP, from a `preset.ini`:
-  [`examples/llamacpp/qwen3.8-27b`](../qwen3.8-27b/README.md)
-- The bigger mixture-of-experts sibling on the same engine:
-  [`examples/llamacpp/qwen3.6-35b-a3b`](../qwen3.6-35b-a3b/README.md)
+  [`qwen3.8-27b`](../qwen3.8-27b/README.md)

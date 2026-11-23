@@ -1,4 +1,4 @@
-# local-2
+# qwen3.8-27b
 
 Qwen3.8-27B served locally by llama.cpp on port 8081.
 
@@ -43,5 +43,5 @@ reprocessing the parent's prompt.
 
 ## Other environments on the same machine
 
-`local-3` (oMLX) and `local-4` (MTPLX) load their own copy of a similar-sized
-model. Only one of the three local environments fits in memory at a time.
+`qwen3.8-27b-omlx` (oMLX) and `qwen3.8-27b-mtplx` (MTPLX) load their own copy of a similar-sized
+model. Only one of the local qwen3.8-27b environments fits in memory at a time.
