@@ -6,7 +6,7 @@
 #
 # Each node's `name` is the registered environment it drives — one per
 # `spinloop remote deploy` — and what you type at `fleet start <node>`.
-# `kind: remote` marks it as a cloud environment rather than a host. No
+# `kind: cloud` marks it as a cloud environment rather than a host. No
 # bearer tokens or URLs here: the control plane signs each call, and each
 # environment's control URLs live in its remote.json, not in this file.
 
@@ -20,21 +20,21 @@ apiKeyEnv: OPENAI_API_KEY
 
 nodes:
   - name: dev-1
-    kind: remote
+    kind: cloud
     # 96GB VRAM, RTX PRO 6000 Blackwell, 64GB system RAM
     instance-type: g7e.2xlarge
 
   - name: dev-2
-    kind: remote
+    kind: cloud
 
   - name: dev-3
-    kind: remote
+    kind: cloud
     
   - name: dev-4
-    kind: remote
+    kind: cloud
 
   - name: vllm-1
-    kind: remote
+    kind: cloud
 
   - name: glimmer
     host: localhost
