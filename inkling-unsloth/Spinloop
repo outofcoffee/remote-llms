@@ -1,0 +1,19 @@
+PROVIDER unsloth
+MODEL    unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL
+ALIAS    inkling-2-mini
+CONTEXT  80K     # Studio's memory check refuses 128K with 32 GB of unified memory
+OUTPUT   32K     # cap output tokens — this model can get stuck in long reasoning loops
+PARALLEL 1
+BASEURL  http://127.0.0.1:8084/v1
+
+PARAM no-mmproj          # text-only: skip the vision projector
+
+PARAM temperature = 1.0
+PARAM top-p = 1.0
+PARAM top-k = 0
+PARAM min-p = 0.0
+
+# quantise the KV cache — Studio forwards these to its llama-server
+PARAM flash-attn   = on   # long form: Studio forwards keys as written, and llama-server has no --fa
+PARAM cache-type-k = q8_0
+PARAM cache-type-v = q8_0
