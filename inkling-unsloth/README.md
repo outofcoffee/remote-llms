@@ -11,8 +11,7 @@ vision projector is skipped with `no-mmproj`.
 
 ## Run
 
-Needs a spinloop build that has the `unsloth` engine
-(spinloop-ai/spinloop#288).
+Needs spinloop 1.50.0 or later.
 
 ```sh
 spinloop serve
