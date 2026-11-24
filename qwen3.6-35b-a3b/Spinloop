@@ -1,0 +1,42 @@
+# Qwen3.6-35B-A3B, a sparse MoE (3B active params out of 35B), served locally
+# by llama-server. Everything in this one file, no preset.ini: engine options
+# live here as PARAMs, rendered into the llama-server command.
+#
+# Sampling params come from the model's Hugging Face page, not from the
+# qwen3.8-27b pattern — the thinking-mode set differs. See the README for
+# the general-thinking alternative.
+PROVIDER llamacpp
+ALIAS    qwen3.6-35b-a3b
+CONTEXT  128K          # model natively supports 262144; the model page asks for
+                       # at least 128K to keep thinking intact
+OUTPUT   64K     # override default 1/4 output
+BASEURL  http://127.0.0.1:8083/v1
+
+PARAM hf = unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_XL   # the model: repo:QUANT
+PARAM no-mmproj          # skip the vision projector that -hf downloads
+
+PARAM ngl = 99           # offload every layer to the GPU; lower for limited VRAM
+PARAM fa = on            # flash attention
+PARAM jinja              # required for Qwen tool calling
+
+# Qwen's recommended sampling parameters for *thinking* mode on precise
+# coding tasks (the model page's WebDev set). llama.cpp's own defaults
+# differ, so they are set explicitly. For general (non-coding) tasks the
+# page recommends temp 1.0 with presence_penalty 1.5 — see the README.
+PARAM temp = 0.6
+PARAM top-p = 0.95
+PARAM top-k = 20
+PARAM min-p = 0.0
+PARAM repeat-penalty = 1.0
+PARAM presence-penalty = 0.0
+
+# Speculative decoding with the model's draft head. Off by default: the
+# model page recommends MTP for vLLM/SGLang, not llama.cpp, and the draft
+# head is only in the *-MTP-GGUF build. If you want it, switch the hf PARAM
+# to unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q4_K_XL and uncomment the two lines:
+# PARAM spec-type = draft-mtp
+# PARAM spec-draft-n-max = 2
+
+# quantise the KV cache
+PARAM cache-type-k = q8_0
+PARAM cache-type-v = q8_0
