@@ -21,7 +21,7 @@ If it's missing, download it:
 
 ```sh
 mkdir -p ../llama-inkling/llama.cpp
-curl -L -o ../llama-inkling/llama.tar.gz https://github.com/unslothai/llama.cpp/releases/download/b12588-mix-c0c3de8/llama-b12588-mix-c0c3de8-bin-macos-arm64.tar.gz
+curl -L -o ../llama-inkling/llama.tar.gz https://github.com/unslothai/llama.cpp/releases/download/b12649-mix-c7059d6/llama-b12649-mix-c7059d6-bin-macos-arm64.tar.gz
 tar -xzf ../llama-inkling/llama.tar.gz -C ../llama-inkling/llama.cpp --strip-components=1
 ../llama-inkling/llama.cpp/llama-server --version
 ```
