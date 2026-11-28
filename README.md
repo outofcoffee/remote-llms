@@ -1,232 +1,159 @@
 # remote-llms
 
-Configuration for remote hosted LLMs, using [spinloop](https://github.com/spinloop-ai/spinloop).
+Spinloop configs for serving LLMs — locally on this machine, or on cloud GPUs —
+and a fleet definition that observes them together.
 
-Four remote environments serving **Qwen3.8-27B** — three on llama.cpp, one
-(`vllm-1`) on vLLM — deployed onto the shared account-level infrastructure. Each
-has its own Elastic IP, API key and config, so all can run side by side in one
-AWS account.
-
-## Why
-
-This repo allows you to deploy Qwen to a cloud VM and connect your local AI coding agent to it.
+Each directory holds one environment: a `Spinloop` file (what it serves) plus
+either a `preset.ini` (how it runs, in the engine's own flag vocabulary) or
+`PARAM` lines inline. The per-directory READMEs hold what each model is, how
+it fits in memory and what its sampling settings are. This file is the map —
+how to serve, point a coding agent at any of them, and drive the fleet.
 
 ## Prerequisites
 
 - `spinloop` on your `PATH` — `brew install spinloop-ai/tap/spinloop`
-- AWS credentials that resolve for this account (the standard AWS chain — profile,
-  SSO, or env). Region is pinned to `us-east-1` by each Spinloop's `ENV`.
-- For bootstrap only: a Node runtime, including `npm` (it drives the CDK project in
-  spinloop's `remote/` tree).
-- A coding-agent harness installed — `opencode` (the default) or `pi`.
+- A coding-agent harness — `opencode` (default), `pi` or `lucinate`
+- For the cloud environments: AWS credentials that resolve for this account
+  (profile, SSO or env). Region is pinned to `us-east-1` by each dev Spinloop's
+  `ENV` line. Bootstrap drives a CDK project, so it needs Node, `npm` or
+  `pnpm` — spinloop auto-detects it.
 
-## 1. Bootstrap the shared layer (once per account)
+## Getting started
 
-The shared infrastructure — Image Builder AMIs, the lifecycle Lambdas, the S3
-weights bucket, roles and VPC — is deployed once and reused by every environment:
+### Locally
 
 ```sh
-spinloop remote bootstrap              # shows a plan, then asks to confirm
-# spinloop remote bootstrap --dry-run  # print the plan, change nothing
-# spinloop remote bootstrap --yes      # confirm non-interactively
+cd qwen3.8-27b          # or any other config directory
+spinloop serve
 ```
 
-It prints the target account, region and cost caveat before touching anything,
-then deploys the control plane — it creates no instance, Elastic IP or
-environment. Re-running is safe and needs no override; it updates the stack and
-skips work that's already done.
+`spinloop serve` builds the server command from the Spinloop and runs it in
+the foreground. `spinloop serve --dry-run` prints the command without starting
+anything. The `inkling/` config needs the Unsloth llama.cpp build on `PATH` —
+see its README.
 
-The runner AMIs are baked separately by `spinloop remote bake` (a slow ~20–40
-minute step); run it once and wait, or `--no-wait` to let it run while you go on.
+### Pointing a harness at it
 
-You only do this **once for the account** — every environment reuses it.
+```sh
+spinloop harness apply          # from the directory: configure the harness
+spinloop code                   # launch the active harness on it
+```
 
-## 2. Alias the Spinloops
+Both take a path or alias as a leading argument,
+`spinloop harness apply qwen3.8-27b/Spinloop`, so you can do it from the repo
+root too. To pin a launch to one engine, pass `--node`:
+`spinloop code --node dev-1`.
 
-All four Spinloops declare the same `ALIAS` (`qwen3.8-27b`), so register them under
-distinct names to tell them apart in later commands:
+## Aliases and node names
+
+A Spinloop can be named under a short alias — a path or directory that
+stands in wherever a command takes a Spinloop:
 
 ```sh
 spinloop alias -n dev-1 dev-1/Spinloop
-spinloop alias -n dev-2 dev-2/Spinloop
-spinloop alias -n dev-3 dev-3/Spinloop
-spinloop alias -n vllm-1 vllm-1/Spinloop
-
-spinloop alias -l                    # list what's registered
 ```
 
-These names stand in for the file paths wherever a command takes a Spinloop —
-`remote deploy`, `serve`, and `harness apply`/`open` — and double as the
-environment names you pass to `--env` on `start`, `stop`, `status` and `metrics`.
-The alias registry lives in spinloop's own config, not in the repo.
+A node's `name` in the fleet file resolves the same way: a registered alias,
+or a same-named subdirectory beside `fleet.yaml`, which is how
+`spinloop fleet deploy --node dev-1` finds `dev-1/Spinloop` from this
+directory. `spinloop alias -l` lists what's registered. The registry lives in
+spinloop's own config, not in this repo.
 
-## 3. Deploy each environment
+## The fleet
 
-Deploy stands up the environment's Elastic IP, instance config, per-environment
-API key and ingress rule, sets what it serves (the Spinloop + preset), and registers
-it under `~/.config/spinloop/remotes/<env>/remote.json`. It does **not** start an
-instance.
+`fleet.yaml` lists the cloud environments (`dev-1`…`dev-4`, `vllm-1`) and the
+local daemons (`glimmer`, `qwen3.8-27b`, `qwen3.8-27b-omlx`,
+`qwen3.8-27b-mtplx`) as one fleet. Picking it up from the repo root:
 
 ```sh
-spinloop remote deploy dev-1 --env dev-1
-spinloop remote deploy dev-2 --env dev-2
-spinloop remote deploy dev-3 --env dev-3
-spinloop remote deploy vllm-1 --env vllm-1
+spinloop status                   # one row per node
+spinloop dashboard                # live tiled view
+spinloop metrics                  # resource and token counters per node
+spinloop fleet start --node dev-1 # boot one node (or --all for the whole fleet)
+spinloop fleet stop --node dev-1  # stop it again
 ```
 
-- Ingress defaults to your current public IP as a `/32`; pass a CIDR flag to widen it.
-- If the model's weights aren't in the account's weights bucket yet, the deploy
-  starts a seed job that streams them in from Hugging Face and names the seed
-  handle — follow it with `spinloop remote seed status <seed-id>` (and `spinloop
-  remote seed ls`), and wait for it to report `succeeded` before starting, so
-  the instance doesn't sync an incomplete prefix.
-- Redeploying an environment that's already live needs `--overwrite` so you can't
-  silently clobber a running instance.
+`spinloop gateway` serves the whole fleet under one OpenAI-compatible endpoint
+(`:4000` by default), waking a node when a request asks for a model nothing is
+serving. The fleet file's `gateway:` section names that address; an agent
+pointed at the gateway needs only the gateway's token, as `OPENAI_API_KEY`.
 
-> The alias, a path (`dev-1/Spinloop`), or a directory holding one all work here;
-> with no Spinloop named, deploy uses `./Spinloop`, so `cd dev-1 && spinloop
-> remote deploy --env dev-1` does the same thing.
+## Cloud environments
 
-## 4. Start them
-
-Starting boots the instance on the environment's own Elastic IP and only reports
-success once the model is actually answering. It tries each availability zone in
-turn for GPU capacity:
+Five cloud environments run Qwen3.8-27B — `dev-1`…`dev-4` on llama.cpp and
+`vllm-1` on vLLM. Each is its own Elastic IP, API key and config, so they
+run side by side in one account. Model and tuning details live in the configs
+and the `dev-*` presets.
 
 ```sh
-spinloop remote start --env dev-1
-spinloop remote start --env dev-2
-spinloop remote start --env dev-3
-spinloop remote start --env vllm-1
+# once per account:
+spinloop cloud bootstrap        # creates the control plane (asks to confirm; --dry-run prints the plan)
+spinloop cloud bake             # bakes the runner AMIs (slow; --no-wait to background it)
+
+# then, per environment (from the repo root):
+spinloop fleet deploy --node dev-1   # derives what to serve from dev-1/Spinloop
+spinloop cloud start --node dev-1    # boot it
+spinloop code --node dev-1           # launch the harness on it
+spinloop cloud stop --node dev-1     # shut it down now
 ```
 
-Idle instances self-terminate after the idle period, so you don't pay for storage
-while they sit unused — starting again brings them back at the same address.
+Deploying from the config directory instead uses `spinloop cloud deploy --node
+dev-1` (run inside `dev-1/`; `spinloop cloud deploy --node dev-1` fails from
+the repo root, which has no Spinloop). `spinloop fleet deploy --help` and
+`spinloop cloud deploy --help` carry the full flags.
 
-## 5. Launch OpenCode (or Pi, etc.) connected to your remote LLM
+Re-deploying a live environment needs `--overwrite`, so an update can't silently
+clobber a running instance.
 
-Point your coding agent at an environment and launch it in one command. This
-configures the harness from what the environment serves — a provider keyed on the
-environment name and the model it runs — then starts your agent:
+Weights live in the account's S3 bucket. `spinloop cloud seed ls` lists them,
+`spinloop cloud seed status <seed-id>` follows one to completion, and
+`--reseed` re-fetches them (~20 minutes).
 
-```sh
-spinloop code --env dev-1          # dress the agent for dev-1, then launch
-spinloop code --env dev-2          # …or dev-2
-spinloop code --env dev-3          # …or dev-3
-```
+`spinloop cloud env --node dev-1` prints the running endpoint's environment
+variables (base URL and API key) without starting anything.
 
-In the harness model picker each shows up distinctly as `llama.cpp (dev-1)`,
-`llama.cpp (dev-2)`, `llama.cpp (dev-3)`, so you can switch between the running
-endpoints without them looking identical.
+Idle instances self-terminate after the idle period. `spinloop cloud start --node
+dev-1 --keep 4h` retains the instance for that start's duration, and
+`spinloop cloud keep --node dev-1` defers termination for one already running.
+Stopping and starting brings the instance back at its same Elastic IP.
 
-To wire up the config without launching, apply on its own:
+## Keys and files
 
-```sh
-spinloop harness apply dev-1 --env dev-1   # unapply with: spinloop harness unapply dev-1
-```
-
-Prefer Pi over opencode? Set it once — `spinloop harness config --set pi` — or
-pick per command with `-H pi`.
-
-## Get the API endpoint and API key
-
-If you want to connect your own AI coding harness or other tools to the running
-instances, just run `spinloop remote env --env <env name>`, e.g.
-
-```sh
-spinloop remote env --env dev-1
-```
-
-...which prints an `export OPENAI_API_KEY=…` line for the environment's
-key, and an `export OPENAI_BASE_URL=…` line for its API endpoint.
-
-## Checking on and stopping an environment
-
-```sh
-spinloop remote ls                 # every registered environment, base URL + region
-spinloop status   --env dev-1      # is it running?
-spinloop metrics  --env dev-1      # GPU, CPU/RAM, token and request counts
-spinloop remote stop --env dev-1   # terminate now instead of waiting for the idle timer
-```
-
-## Running a model locally instead
-
-The same Spinloop + preset that deploys the remote endpoint also runs the model on
-your own machine — `spinloop serve dev-1` starts a local llama-server from
-`dev-1/preset.ini`, `spinloop serve vllm-1` does the same with `vllm serve`, and
-`spinloop harness apply <env>` points the agent at whichever you ran.
-
-## vLLM vs llama.cpp (same model, same GPU)
-
-`vllm-1` runs the same Qwen3.8-27B + MTP setup as the dev-* environments, on
-vLLM 0.26 instead of llama.cpp — same L40S, same 196608 context, FP8 weights
-(`Qwen/Qwen3.8-27B-FP8`). Measured 08-24 with a fixed 512-token generation,
-two runs each; both engines were serving real traffic at the time, so the
-dev-1 TTFTs likely include queueing behind it:
-
-|                | dev-1 (llama.cpp) | vllm-1 (vLLM)          |
-|----------------|-------------------|------------------------|
-| decode         | 30–34 tok/s       | 14–17 tok/s            |
-| TTFT           | ~3.7–4.0 s        | ~0.2 s                 |
-| MTP acceptance | ~0.5, ~3.0/step   | 0.75, 4 drafts/step    |
-| KV cache       | bf16              | fp8: 8.68 GiB, 236,790 tokens, 1.20x concurrency at 196608 |
-
-Knobs that were needed to get `vllm-1` to boot and serve (all in `vllm-1/preset.ini`):
-
-- `attention-backend = TRITON_ATTN`, plus `"attention_backend": "TRITON_ATTN"`
-  inside the speculative-config. The AMI is slim (no CUDA toolkit), and the
-  default FlashInfer attention kernels JIT-compile on the first prefill, which
-  needs nvcc and killed the engine on its first real request. Triton's kernels
-  compile at engine init instead. A speculative drafter never inherits the
-  target's backend, so both places need it.
-- `kv-cache-dtype = fp8`. The bf16 KV cache at 196608 is 13.55 GiB; vLLM
-  profiles 8.68 GiB of headroom. fp8 KV here uses uncalibrated scales — a
-  memory lever, not a validated quality trade.
-- `max-num-seqs = 128`. Qwen3.8's GDN linear-attention layers keep a state
-  block per sequence, and the 0.92 memory budget profiles 158 of them; the
-  default 256 concurrent sequences can't be captured into CUDA graphs.
-
-Tool calling works end to end: `enable-auto-tool-choice` +
-`tool-call-parser qwen3_coder` return structured `tool_calls`, and a nested
-opencode session served by `vllm-1` drove its own file tools through the model
-without issue.
-
-llama.cpp wins raw decode speed here (~2x); vLLM wins time-to-first-token and
-batches requests. Part of vllm-1's decode cost is likely the Triton attention
-backend the AMI forces — the FlashInfer path is untested on this image.
-
----
+`.env` (gitignored) holds `OPENAI_API_KEY` for the gateway and any
+open-ended provider; `.env.example` shows the format. Spinloop records env
+references, never the key itself. Some local configs need their own key — see
+the directory's README.
 
 ## Layout
 
 ```
-dev-1/Spinloop      # environment "dev-1"  (REMOTE dev-1)
-dev-1/preset.ini    # llama.cpp preset dev-1 serves
-dev-2/Spinloop      # environment "dev-2"  (REMOTE dev-2)
-dev-2/preset.ini    # llama.cpp preset dev-2 serves
-dev-3/Spinloop      # environment "dev-3"  (REMOTE dev-3)
-dev-3/preset.ini    # llama.cpp preset dev-3 serves
-vllm-1/Spinloop     # environment "vllm-1" (REMOTE vllm-1)
-vllm-1/preset.ini   # vLLM preset vllm-1 serves
+dev-1/ … dev-4/      # cloud llama.cpp environments (Spinloop + preset.ini)
+vllm-1/              # cloud vLLM environment (Spinloop + preset.ini)
+qwen3.8-27b/         # local llama.cpp, MTP (Spinloop, no preset)
+qwen3.6-35b-a3b/     # local llama.cpp (Spinloop, no preset)
+glimmer/             # local llama.cpp with DFlash (Spinloop + preset.ini)
+inkling/             # local llama.cpp on the Unsloth build (Spinloop)
+inkling-unsloth/     # local Unsloth Studio (Spinloop)
+qwen3.8-27b-omlx/    # local oMLX (Spinloop + preset.ini)
+qwen3.8-27b-mtplx/   # local MTPLX (Spinloop + preset.ini)
+fleet.yaml           # the cloud + local nodes as one fleet
+.env, .env.example   # API keys — .env is never committed
 ```
 
-These files carry only the environment *name*; the deployment's URLs, address
-and key live per-user under `~/.config/spinloop/remotes/<env>/` and are never
-committed here.
+Note that `qwen3.6-35b-a3b`, `inkling` and `inkling-unsloth` are not part of
+`fleet.yaml` — they serve individually, and their READMEs carry the details.
 
 ## Spinloop file fields
 
 | Field      | Meaning |
 |------------|---------|
-| `PROVIDER` | Inference engine — `llamacpp` for the dev-*, `vllm` for `vllm-1`. A vLLM environment sets `MODEL` to the model's FP8 distribution (e.g. `Qwen/Qwen3.8-27B-FP8` — vLLM reads Hugging Face checkpoints, not GGUF) and keeps a `PRESET` carrying the engine flags — MTP speculative config, tool parser, sampling defaults |
-| `ALIAS`    | Model name — used both by your coding agent and as the server's model name (llama-server's `--alias`, vLLM's `--served-model-name`), so the two can't drift apart |
-| `CONTEXT`  | Context length — `--ctx-size` for llama.cpp, `--max-model-len` for vLLM |
-| `PRESET`   | Path to the preset this environment serves, in its `PROVIDER`'s dialect |
-| `REMOTE`   | Environment name — its EIP, API key and config are its own, so several environments run side by side in one account |
-| `ENV`      | Environment variables for the deploy, e.g. `AWS_REGION` |
-
-`spinloop remote deploy` uses `PROVIDER` to ask the cloud for the right engine,
-and `spinloop serve` uses it to run the same config locally. Either way, if the
-weights aren't in the account's bucket yet, a seed job streams them in from
-Hugging Face and the deploy names it — `spinloop remote seed status <seed-id>`
-follows it to completion.
+| `PROVIDER` | Engine — `llamacpp`, `vllm`, `omlx`, `mtplx`, `unsloth` |
+| `ALIAS`    | The model name — the server's model name and the harness label |
+| `MODEL`    | The model reference — llama.cpp takes `repo:QUANT` (via the preset's `hf` or a `hf` PARAM); vLLM takes an HF checkpoint id; oMLX/MTPLX use an engine-specific name |
+| `CONTEXT`  | Context window in tokens |
+| `OUTPUT`   | Max output tokens (default: 1/4 of `CONTEXT`) |
+| `BASEURL`  | Where the harness points at the server |
+| `PRESET`   | Engine-specific preset file (optional — `PARAM` lines carry the same options) |
+| `PARAM`    | Engine option, as `KEY = value` — no preset needed (see `qwen3.8-27b`) |
+| `PARALLEL` | Parallel slots (see the Unsloth Studio config) |
+| `ENV`      | Environment variables recorded for the deploy (e.g. `AWS_REGION`) |
