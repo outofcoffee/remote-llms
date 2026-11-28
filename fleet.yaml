@@ -1,14 +1,16 @@
-# The four Qwen3.8-27B cloud environments, observed as one fleet.
+# Cloud environments (dev-* on llama.cpp, vllm-1 on vLLM) and local
+# hosts, observed as one fleet.
 #
 #   spinloop dashboard    # the live tiled view (picks this file up)
 #   spinloop status       # one row per environment
 #   spinloop metrics -w   # the pipeable live redraw
 #
-# Each node's `name` is the registered environment it drives — one per
-# `spinloop remote deploy` — and what you type at `fleet start <node>`.
+# A node's `name` is what you type at `fleet start <node>`; for a cloud node
+# it's the registered environment it drives — one per `spinloop fleet deploy`.
 # `kind: cloud` marks it as a cloud environment rather than a host. No
 # bearer tokens or URLs here: the control plane signs each call, and each
-# environment's control URLs live in its remote.json, not in this file.
+# environment's control URLs live under ~/.config/spinloop/clouds/<name>/,
+# not in this file.
 
 prefer: idle
 

@@ -136,10 +136,10 @@ anything.
 
 ```sh
 spinloop cloud bootstrap                     # once per AWS account: the control plane
-spinloop cloud deploy --env qwen3.8-27b      # from this directory
-eval "$(spinloop cloud start --env qwen3.8-27b)"   # boots (~10 min cold)
-spinloop harness open --env qwen3.8-27b      # work
-spinloop cloud stop --env qwen3.8-27b        # done — shut it down now
+spinloop cloud deploy --node qwen3.8-27b     # from this directory
+eval "$(spinloop cloud start --node qwen3.8-27b --print-env)"   # boots (~10 min cold)
+spinloop harness open --node qwen3.8-27b     # work
+spinloop cloud stop --node qwen3.8-27b       # done — shut it down now
 ```
 
 The deploy reads the PARAMs the same way `serve` does — `hf` names the
