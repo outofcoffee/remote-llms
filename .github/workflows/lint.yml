@@ -1,0 +1,13 @@
+name: lint Spinloops
+on: [push]
+permissions:
+  contents: read
+jobs:
+  spinloop-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: spinloop-ai/spinloop-lint@v0.1.0
+        with:
+          version: v0.1.0
+          path: .
